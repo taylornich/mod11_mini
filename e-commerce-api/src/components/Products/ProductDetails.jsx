@@ -1,22 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Button, Card, Alert } from 'react-bootstrap';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ProductConfirmationModal from './ProductConfirmationModal';
 
 const ProductDetail = ({ productId, onProductDeleted }) => {
   const [product, setProduct] = useState(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const history = useHistory();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    if (!productId) {
+      setError('Invalid product ID');
+      setLoading(false);
+      return;
+    }
+
     const fetchProduct = async () => {
+      setLoading(true);
       try {
         const response = await axios.get(`http://127.0.0.1:5000/products/${productId}`);
         setProduct(response.data);
       } catch (error) {
-        setError(error.response ? error.response.data.error : 'Error fetching product');
+        setError('Failed to fetch product details');
+        console.error(error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchProduct();
@@ -27,12 +38,14 @@ const ProductDetail = ({ productId, onProductDeleted }) => {
       await axios.delete(`http://127.0.0.1:5000/products/${productId}`);
       onProductDeleted(productId);
       setShowModal(false);
-      history.push('/products');
+      navigate('/products');
     } catch (error) {
-      setError(error.response ? error.response.data.error : 'Error deleting product');
+      setError('Error deleting product');
+      console.error(error);
     }
   };
 
+  if (loading) return <p>Loading...</p>;
   if (error) return <Alert variant="danger">{error}</Alert>;
 
   return product ? (
@@ -53,7 +66,7 @@ const ProductDetail = ({ productId, onProductDeleted }) => {
       />
     </div>
   ) : (
-    <p>Loading...</p>
+    <p>No product found</p>
   );
 };
 
